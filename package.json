@@ -1,0 +1,14 @@
+{
+  "name": "github-issues",
+  "version": "1.0.0",
+  "description": "A github issues viewer",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "thephilguy",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
+}
