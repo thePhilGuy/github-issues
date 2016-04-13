@@ -1,3 +1,16 @@
+// ============== Helper Functions =============================================
+function shorten(text, limit) {
+    var words = text.split(" ");
+    var short = "";
+    for (var i = 0, chars = 0; i < words.length && chars < limit; i++) {
+        short += words[i];
+        chars += words[i].length;
+        if (chars < limit) short += " ";
+    }
+    return short;
+}
+
+// ============== API Communication ============================================
 var requestStream = Rx.Observable.just('https://api.github.com/repos/npm/npm/issues');
 
 var responseStream = requestStream
@@ -6,14 +19,12 @@ var responseStream = requestStream
   });
 
 responseStream.subscribe(function(response) {
-    console.log(response.length);
     response.map(function(issue) {
-        console.log(issue);
         var issueItem = '<div>' +
                         '<h3>' + issue.title + '</h3>\n' +
                         '<i>' + issue.labels + '</i>\n' +
-                        '<p>' + issue.body + '</p>\n' +
-                        '<p>' + issue.user.login + '<img src=' + issue.user.avatar_url + ' /> </p> </div>';
+                        '<p>' + shorten(issue.body, 140) + '</p>\n' +
+                        '<p>' + '<img height="48" width="48" src=' + issue.user.avatar_url + ' />' + issue.user.login + '</p> </div>';
         $('.content').append(issueItem);
     });
 });
