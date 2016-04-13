@@ -9,6 +9,11 @@ responseStream.subscribe(function(response) {
     console.log(response.length);
     response.map(function(issue) {
         console.log(issue);
-        $('#issues').append('<li>'+issue.url+'</li>');
+        var issueItem = '<div>' +
+                        '<h3>' + issue.title + '</h3>\n' +
+                        '<i>' + issue.labels + '</i>\n' +
+                        '<p>' + issue.body + '</p>\n' +
+                        '<p>' + issue.user.login + '<img src=' + issue.user.avatar_url + ' /> </p> </div>';
+        $('.content').append(issueItem);
     });
 });
