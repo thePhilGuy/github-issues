@@ -8,19 +8,44 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <!-- Place favicon.ico in the root directory -->
 
-        <link rel="stylesheet" href="css/normalize.css">
-        <link rel="stylesheet" href="css/main.css">
+        <!-- <link rel="stylesheet" href="css/normalize.css">
+        <link rel="stylesheet" href="css/main.css"> -->
+        <link rel="stylesheet" href="semantic/semantic.min.css">
+
+        <style>
+          /*.last.container {
+            margin-bottom: 300px !important;
+          }*/
+          h1.ui.center.header {
+            margin-top: 3em;
+            margin-bottom: 2em;
+          }
+          /*h2.ui.center.header {
+            margin: 4em 0em 2em;
+          }
+          h3.ui.center.header {
+            margin-top: 2em;
+            padding: 2em 0em;
+          }*/
+        </style>
+
     </head>
     <body>
         <!--[if lt IE 8]>
             <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
 
-        <div class="content">
+        <h1 class="ui center aligned header">Github Issues Viewer</h1>
+
+        <div class="ui container">
+          <div class="ui relaxed divided items" id="issues_list">
+              <!-- Issues list gets loaded here -->
+          </div>
         </div>
 
         <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
         <script>window.jQuery || document.write('<script src="js/vendor/jquery-2.2.3.min.js"><\/script>')</script>
+        <script src="semantic/semantic.js"></script>
         <script src="rx/rx.all.js"></script>
         <script src="js/issues.js"></script>
     </body>
