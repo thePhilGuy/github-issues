@@ -11,10 +11,10 @@ function shorten(text, limit) {
 }
 
 function styleLabel(label) {
-    var tag = '<div class="ui basic label" style="">' +
-            //   'text-shadow: white 0 0 10px;' +
-            //   'color: black;' +
-            //   'background-color: #' + label.color + ';">' +
+    var tag = '<div class="ui basic label" style="' +
+            //   'text-shadow: black 0 0 10px;' +
+            //   'color: #' + label.color + ';' +
+              'border-color: #' + label.color + '!important;">' +
               label.name + '</div>';
     return tag;
 }
