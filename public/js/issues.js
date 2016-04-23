@@ -34,7 +34,7 @@ function makePageMenu(headers) {
         var nextUrl = tokens[1].substring(1, tokens[1].length - 2);
         next = '<a class="item">' + nextUrl[nextUrl.length - 1] + '</a>';
         var lastUrl = tokens[3].substring(1, tokens[3].length - 2);
-        last = '<a class="item">' + lastUrl[lastUrl.length - 1] + '</a>';
+        last = '<a class="item" id="last_page">' + lastUrl[lastUrl.length - 1] + '</a>';
         var index = Number(nextUrl[nextUrl.length - 1]) - 1;
         current = '<a class="active item">' + index + '</a>';
     } else if (tokens[2] === 'rel="first",') {
@@ -63,13 +63,25 @@ function makePageMenu(headers) {
     if (prev.length > 0) $('#issues_pages').append(prev);
     $('#issues_pages').append(current);
     if (next.length > 0) $('#issues_pages').append(next);
-    if (last.length > 0) $('#issues_pages').append(last);
+    if (last.length > 0) {
+        $('#issues_pages').append(last);
+        var lastLinkRequestStream = Rx.Observable.create(function(observer) {
+            $('#last_page').on('click', function() {
+                    observer.onNext(lastUrl);
+            });
+        });
+        lastLinkRequestStream.subscribe(function(url) {
+            $('#issues_list').empty();
+            requestStream.onNext(lastUrl);
+        });
+    }
 
 }
 // ============== API Communication ============================================
-var requestStream = Rx.Observable.just('https://api.github.com/repos/npm/npm/issues?page=2');
+var requestStream = new Rx.Subject();
 
 var responseStream = requestStream.flatMap(function(requestUrl) {
+    console.log("Request: " + requestUrl);
     return Rx.Observable.create(function (observer) {
         jQuery.getJSON(requestUrl)
         .done(function(response, status, jqXHR) { observer.onNext(jqXHR); })
@@ -104,3 +116,5 @@ responseStream.subscribe(function(response) {
         $('#issues_list').append(issueItem);
     });
 });
+
+requestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=1');
