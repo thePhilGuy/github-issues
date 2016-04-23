@@ -3,6 +3,6 @@ h1.ui.center.header {
   margin-bottom: 2em;
 }
 
-/*.ui.label.issue_number {
-    font-size: medium;
-}*/
+#issues_pages {
+    margin-bottom: 3em;
+}
