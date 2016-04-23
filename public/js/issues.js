@@ -32,18 +32,22 @@ function makePageMenu(headers) {
     if (tokens[2] === 'rel="next",') {
         // In case of a first or middle page
         var nextUrl = tokens[1].substring(1, tokens[1].length - 2);
-        next = '<a class="item">' + nextUrl[nextUrl.length - 1] + '</a>';
+        var nextIdx = nextUrl.split("=")[1];
+        next = '<a class="item">' + nextIdx + '</a>';
         var lastUrl = tokens[3].substring(1, tokens[3].length - 2);
-        last = '<a class="item" id="last_page">' + lastUrl[lastUrl.length - 1] + '</a>';
-        var index = Number(nextUrl[nextUrl.length - 1]) - 1;
+        var lastIdx = lastUrl.split("=")[1];
+        last = '<a class="item" id="last_page">' + lastIdx + '</a>';
+        var index = Number(nextIdx) - 1;
         current = '<a class="active item">' + index + '</a>';
     } else if (tokens[2] === 'rel="first",') {
         // In case of a last page
         var firstUrl = tokens[1].substring(1, tokens[1].length - 2);
-        first = '<a class="item">' + firstUrl[firstUrl.length - 1] + '</a>';
+        var firstIdx = firstUrl.split("=")[1];
+        first = '<a class="item">' + firstIdx + '</a>';
         var prevUrl = tokens[3].substring(1, tokens[3].length - 2);
-        prev = '<a class="item">' + prevUrl[prevUrl.length - 1] + '</a>';
-        var index = Number(prevUrl[prevUrl.length - 1]) + 1;
+        var prevIdx = prevUrl.split("=")[1];
+        prev = '<a class="item">' + prevIdx + '</a>';
+        var index = Number(prevIdx) + 1;
         current = '<a class="active item">' + index + '</a>';
     }
 
@@ -51,11 +55,13 @@ function makePageMenu(headers) {
     if (tokens.length > 5) {
         // Get first and prev
         var firstUrl = tokens[5].substring(1, tokens[5].length - 2);
-        first = '<a class="item">' + firstUrl[firstUrl.length - 1] + '</a>';
+        var firstIdx = firstUrl.split("=")[1];
+        first = '<a class="item">' + firstIdx + '</a>';
         var prevUrl = tokens[7].substring(1, tokens[7].length - 2);
+        var prevIdx = prevUrl.split("=")[1];
         // check that this is not the 2nd element
-        if (firstUrl != prevUrl) {
-            prev = '<a class="item">' + prevUrl[prevUrl.length - 1] + '</a>';
+        if (firstIdx != prevIdx) {
+            prev = '<a class="item">' + prevIdx + '</a>';
         }
     }
 
@@ -72,6 +78,7 @@ function makePageMenu(headers) {
         });
         lastLinkRequestStream.subscribe(function(url) {
             $('#issues_list').empty();
+            $('#issues_pages').empty();
             requestStream.onNext(lastUrl);
         });
     }
@@ -117,4 +124,4 @@ responseStream.subscribe(function(response) {
     });
 });
 
-requestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=1');
+requestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=2');
