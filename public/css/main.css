@@ -6,3 +6,7 @@ h1.ui.center.header {
 #menubar {
     margin-bottom: 3em;
 }
+
+#issues_list {
+    padding-bottom: 10em;
+}

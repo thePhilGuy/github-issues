@@ -6,6 +6,7 @@ function shorten(text, limit) {
         short += words[i];
         chars += words[i].length;
         if (chars < limit) short += " ";
+        else short += "...";
     }
     return short;
 }
@@ -84,7 +85,38 @@ function makePageMenu(headers) {
     }
 
 }
-// ============== API Communication ============================================
+// ============== Search bar api communication ========================================
+function sayHi(url) {
+    alert("Hello search term: " + url);
+}
+
+$('.ui.search').search({
+    apiSettings: {
+      url: '//api.github.com/search/repositories?q={query}',
+      onResponse: function(githubResponse) {
+        var response = { results : [] };
+        // translate GitHub API response to call a function instead of link to repository
+        $.each(githubResponse.items, function(index, item) {
+          var js_url = "javascript:void sayHi('" + item.html_url + "')";
+          response.results.push({
+              title: item.name,
+              description: item.description,
+              url: js_url
+          });
+        });
+        return response;
+    },
+    fields: {
+      results : 'results',
+      title   : 'title',
+      url     : 'url',
+    },
+    minCharacters : 3
+  }
+});
+// ====================================================================================
+
+// ============== Github API Communication ============================================
 var requestStream = new Rx.Subject();
 
 var responseStream = requestStream.flatMap(function(requestUrl) {
@@ -98,10 +130,8 @@ var responseStream = requestStream.flatMap(function(requestUrl) {
 });
 
 responseStream.subscribe(function(response) {
-
     var headers = response.getAllResponseHeaders();
     makePageMenu(headers);
-
     response.responseJSON.map(function(issue) {
         var issueItem ='<div class="item"> <div class="content">' +
                        '<div class="ui ribbon label issue_number"> #' + issue.number + '</div>' +
