@@ -34,22 +34,22 @@ function makePageMenu(headers) {
         // In case of a first or middle page
         var nextUrl = tokens[1].substring(1, tokens[1].length - 2);
         var nextIdx = nextUrl.split("=")[1];
-        next = '<a class="item">' + nextIdx + '</a>';
+        next = '<a class="item" id="next_page">' + nextIdx + '</a>';
         var lastUrl = tokens[3].substring(1, tokens[3].length - 2);
         var lastIdx = lastUrl.split("=")[1];
         last = '<a class="item" id="last_page">' + lastIdx + '</a>';
         var index = Number(nextIdx) - 1;
-        current = '<a class="active item">' + index + '</a>';
+        current = '<div class="active item">' + index + '</div>';
     } else if (tokens[2] === 'rel="first",') {
         // In case of a last page
         var firstUrl = tokens[1].substring(1, tokens[1].length - 2);
         var firstIdx = firstUrl.split("=")[1];
-        first = '<a class="item">' + firstIdx + '</a>';
+        first = '<a class="item" id="first_page">' + firstIdx + '</a>';
         var prevUrl = tokens[3].substring(1, tokens[3].length - 2);
         var prevIdx = prevUrl.split("=")[1];
-        prev = '<a class="item">' + prevIdx + '</a>';
+        prev = '<a class="item" id="prev_page">' + prevIdx + '</a>';
         var index = Number(prevIdx) + 1;
-        current = '<a class="active item">' + index + '</a>';
+        current = '<div class="active item">' + index + '</div>';
     }
 
     // In case of a middle page
@@ -57,37 +57,67 @@ function makePageMenu(headers) {
         // Get first and prev
         var firstUrl = tokens[5].substring(1, tokens[5].length - 2);
         var firstIdx = firstUrl.split("=")[1];
-        first = '<a class="item">' + firstIdx + '</a>';
+        first = '<a class="item" id="first_page">' + firstIdx + '</a>';
         var prevUrl = tokens[7].substring(1, tokens[7].length - 2);
         var prevIdx = prevUrl.split("=")[1];
         // check that this is not the 2nd element
         if (firstIdx != prevIdx) {
-            prev = '<a class="item">' + prevIdx + '</a>';
+            prev = '<a class="item" id="prev_page">' + prevIdx + '</a>';
         }
     }
 
-    if (first.length > 0) $('#issues_pages').append(first);
-    if (prev.length > 0) $('#issues_pages').append(prev);
+    if (first.length > 0) {
+        $('#issues_pages').append(first);
+        var LinkRequestStream = Rx.Observable.create(function(observer) {
+            $('#first_page').on('click', function() {
+                    observer.onNext(firstUrl);
+            });
+        });
+        LinkRequestStream.subscribe(function(url) {
+            requestStream.onNext(url);
+        });
+    }
+    if (prev.length > 0) {
+        $('#issues_pages').append(prev);
+        var LinkRequestStream = Rx.Observable.create(function(observer) {
+            $('#prev_page').on('click', function() {
+                    observer.onNext(prevUrl);
+            });
+        });
+        LinkRequestStream.subscribe(function(url) {
+            requestStream.onNext(url);
+        });
+    }
     $('#issues_pages').append(current);
-    if (next.length > 0) $('#issues_pages').append(next);
+    if (next.length > 0) {
+        $('#issues_pages').append(next);
+        var LinkRequestStream = Rx.Observable.create(function(observer) {
+            $('#next_page').on('click', function() {
+                    observer.onNext(nextUrl);
+            });
+        });
+        LinkRequestStream.subscribe(function(url) {
+            requestStream.onNext(url);
+        });
+    }
     if (last.length > 0) {
         $('#issues_pages').append(last);
-        var lastLinkRequestStream = Rx.Observable.create(function(observer) {
+        var LinkRequestStream = Rx.Observable.create(function(observer) {
             $('#last_page').on('click', function() {
                     observer.onNext(lastUrl);
             });
         });
-        lastLinkRequestStream.subscribe(function(url) {
-            $('#issues_list').empty();
-            $('#issues_pages').empty();
-            requestStream.onNext(lastUrl);
+        LinkRequestStream.subscribe(function(url) {
+            requestStream.onNext(url);
         });
     }
 
 }
 // ============== Search bar api communication ========================================
-function sayHi(url) {
-    alert("Hello search term: " + url);
+function loadRepo(url) {
+    var repoPath = url.substring('https://github.com/'.length);
+    var issuesUrl = 'https://api.github.com/repos/'+ repoPath + '/issues?page=1';
+    requestStream.onNext(issuesUrl);
 }
 
 $('.ui.search').search({
@@ -97,7 +127,7 @@ $('.ui.search').search({
         var response = { results : [] };
         // translate GitHub API response to call a function instead of link to repository
         $.each(githubResponse.items, function(index, item) {
-          var js_url = "javascript:void sayHi('" + item.html_url + "')";
+          var js_url = "javascript:void loadRepo('" + item.html_url + "')";
           response.results.push({
               title: item.name,
               description: item.description,
@@ -119,6 +149,7 @@ $('.ui.search').search({
 // ============== Github API Communication ============================================
 var requestStream = new Rx.Subject();
 
+// Map requests url on requestStream to JSON ajax request
 var responseStream = requestStream.flatMap(function(requestUrl) {
     console.log("Request: " + requestUrl);
     return Rx.Observable.create(function (observer) {
@@ -129,7 +160,11 @@ var responseStream = requestStream.flatMap(function(requestUrl) {
     });
 });
 
+// Handle JSON responses from requestStream
 responseStream.subscribe(function(response) {
+    $('#issues_list').empty();
+    $('#issues_pages').empty();
+    // TODO escape html in javascript, create elements properly
     var headers = response.getAllResponseHeaders();
     makePageMenu(headers);
     response.responseJSON.map(function(issue) {
