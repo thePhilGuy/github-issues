@@ -1,23 +1,42 @@
 // ============== Helper Functions =============================================
-function shorten(text, limit) {
-    var words = text.split(" ");
-    var short = "";
-    for (var i = 0, chars = 0; i < words.length && chars < limit; i++) {
-        short += words[i];
-        chars += words[i].length;
-        if (chars < limit) short += " ";
-        else short += "...";
-    }
-    return short;
+function loadIssueList(url) {
+    var repoPath = url.substring('https://github.com/'.length);
+    var issuesUrl = 'https://api.github.com/repos/'+ repoPath + '/issues?page=1';
+    listRequestStream.onNext(issuesUrl);
+}
+
+function bindClickableRequest(id, sourceUrl, stream) {
+    Rx.Observable.create(function(observer) {
+        $(id).on('click', function() {
+            observer.onNext(sourceUrl);
+        });
+    }).subscribe(function(url) {
+        stream.onNext(url);
+    });
 }
 
 function styleLabel(label) {
-    var tag = '<div class="ui basic label" style="' +
-              'box-shadow: 0 0 0.05em black;' +
-              'border-color: #' + label.color + '!important;">' +
-              label.name + '</div>';
-    return tag;
+    return $('<div>', {
+             'class' : 'ui basic label',
+             style   : 'box-shadow: 0 0 0.05em black;' +
+                       'border-color: #' + label.color + '!important;">',
+             text    : label.name
+    });
 }
+
+function shorten(text, limit) {
+    var words = text.split(' ');
+    var short = ' ';
+    for (var i = 0, chars = 0; i < words.length && chars < limit; i++) {
+        short += words[i];
+        chars += words[i].length;
+        if (chars < limit) short += ' ';
+        else short += '...';
+    }
+    return short;
+}
+// ====================================================================================
+
 
 function makePageMenu(headers) {
     var headerLines = headers.split("\n");
@@ -25,11 +44,7 @@ function makePageMenu(headers) {
         var tokens = headerLines[6].split(" ");
     }
 
-    var first = '';
-    var prev = '';
-    var current = '';
-    var next = '';
-    var last = '';
+    var first, prev, current, next, last;
     if (tokens[2] === 'rel="next",') {
         // In case of a first or middle page
         var nextUrl = tokens[1].substring(1, tokens[1].length - 2);
@@ -66,91 +81,30 @@ function makePageMenu(headers) {
         }
     }
 
-    if (first.length > 0) {
+    if (first) {
         $('#issues_pages').append(first);
-        var LinkRequestStream = Rx.Observable.create(function(observer) {
-            $('#first_page').on('click', function() {
-                    observer.onNext(firstUrl);
-            });
-        });
-        LinkRequestStream.subscribe(function(url) {
-            requestStream.onNext(url);
-        });
+        bindClickableRequest('#first_page', firstUrl, listRequestStream);
     }
-    if (prev.length > 0) {
+    if (prev) {
         $('#issues_pages').append(prev);
-        var LinkRequestStream = Rx.Observable.create(function(observer) {
-            $('#prev_page').on('click', function() {
-                    observer.onNext(prevUrl);
-            });
-        });
-        LinkRequestStream.subscribe(function(url) {
-            requestStream.onNext(url);
-        });
+        bindClickableRequest('#prev_page', prevUrl, listRequestStream);
     }
     $('#issues_pages').append(current);
-    if (next.length > 0) {
+    if (next) {
         $('#issues_pages').append(next);
-        var LinkRequestStream = Rx.Observable.create(function(observer) {
-            $('#next_page').on('click', function() {
-                    observer.onNext(nextUrl);
-            });
-        });
-        LinkRequestStream.subscribe(function(url) {
-            requestStream.onNext(url);
-        });
+        bindClickableRequest('#next_page', nextUrl, listRequestStream);
     }
-    if (last.length > 0) {
+    if (last) {
         $('#issues_pages').append(last);
-        var LinkRequestStream = Rx.Observable.create(function(observer) {
-            $('#last_page').on('click', function() {
-                    observer.onNext(lastUrl);
-            });
-        });
-        LinkRequestStream.subscribe(function(url) {
-            requestStream.onNext(url);
-        });
+        bindClickableRequest('#last_page', lastUrl, listRequestStream);
     }
-
 }
-// ============== Search bar api communication ========================================
-function loadRepo(url) {
-    var repoPath = url.substring('https://github.com/'.length);
-    var issuesUrl = 'https://api.github.com/repos/'+ repoPath + '/issues?page=1';
-    requestStream.onNext(issuesUrl);
-}
-
-$('.ui.search').search({
-    apiSettings: {
-      url: '//api.github.com/search/repositories?q={query}',
-      onResponse: function(githubResponse) {
-        var response = { results : [] };
-        // translate GitHub API response to call a function instead of link to repository
-        $.each(githubResponse.items, function(index, item) {
-          var js_url = "javascript:void loadRepo('" + item.html_url + "')";
-          response.results.push({
-              title: item.name,
-              description: item.description,
-              url: js_url
-          });
-        });
-        return response;
-    },
-    fields: {
-      results : 'results',
-      title   : 'title',
-      url     : 'url',
-    },
-    minCharacters : 3
-  }
-});
-// ====================================================================================
 
 // ============== Github API Communication ============================================
-var requestStream = new Rx.Subject();
+var listRequestStream = new Rx.Subject();
 
-// Map requests url on requestStream to JSON ajax request
-var responseStream = requestStream.flatMap(function(requestUrl) {
+// Map requests url on listRequestStream to JSON ajax request
+var issueListStream = listRequestStream.flatMap(function(requestUrl) {
     console.log("Request: " + requestUrl);
     return Rx.Observable.create(function (observer) {
         jQuery.getJSON(requestUrl)
@@ -160,33 +114,76 @@ var responseStream = requestStream.flatMap(function(requestUrl) {
     });
 });
 
-// Handle JSON responses from requestStream
-responseStream.subscribe(function(response) {
+// Handle the search bar communication with github repository search
+$('#search_bar').search({
+    apiSettings: {
+        url: '//api.github.com/search/repositories?q={query}',
+        onResponse: function(githubResponse) {
+            var response = {results : []};
+            // translate GitHub API response to call a function instead of link to repository
+            githubResponse.items.forEach(function(index, item) {
+                var js_url = "javascript:void loadIssueList('" + item.html_url + "')";
+                response.results.push({
+                    title       : item.name,
+                    description : item.description,
+                    url         : js_url
+                });
+            });
+            return response;
+        },
+        fields: {
+            results : 'results',
+            title   : 'title',
+            url     : 'url',
+        },
+        minCharacters : 3
+    }
+});
+
+// Handle JSON responses from listRequestStream
+issueListStream.subscribe(function(response) {
     $('#issues_list').empty();
     $('#issues_pages').empty();
-    // TODO escape html in javascript, create elements properly
     var headers = response.getAllResponseHeaders();
     makePageMenu(headers);
+
     response.responseJSON.map(function(issue) {
-        var issueItem ='<div class="item"> <div class="content">' +
-                       '<div class="ui ribbon label issue_number"> #' + issue.number + '</div>' +
-                       '<a class="header">' + issue.title + '</a>';
+        var issueItem = $('<div>', { 'class' : 'item' });
+        var contentDiv = $('<div>', { 'class' : 'content' });
+        var issueLabel = $('<div>', {
+            'class' : 'ui ribbon label issue_number',
+            text : '# ' + issue.number
+        });
+        var issueTitle = $('<a>', {
+            'class' : 'header',
+            text : issue.title
+        });
+
+        contentDiv.append([issueLabel, issueTitle]);
 
         if (issue.labels.length > 0) {
-            issueItem += '<div class="meta">';
-            for (var i = 0; i < issue.labels.length; i++) {
-                issueItem += styleLabel(issue.labels[i]);
-            }
-            issueItem += '</div>';
+            metaDiv = $('<div>', { 'class' : 'meta' });
+            issue.labels.forEach(function(label) {
+                metaDiv.append(styleLabel(label));
+            });
+            contentDiv.append(metaDiv);
         }
 
-        issueItem +='<div class="description">' + shorten(issue.body, 140) + '</div>' +
-                    '<div class="extra">' +
-                    '<img src="' + issue.user.avatar_url + '" class="ui circular avatar image">' + issue.user.login +
-                    '</div> </div> </div>';
+        var issueDescription = $('<div>', {
+            'class' : 'description',
+            text : shorten(issue.body, 140)
+        });
+        var issueAuthor = $('<div>', {
+            'class' : 'extra'
+        }).append($('<img>', {
+            'class' : 'ui circular avatar image',
+            src : issue.user.avatar_url
+        })).append(issue.user.login);
 
+        contentDiv.append([issueDescription, issueAuthor]);
+        issueItem.append(contentDiv);
         $('#issues_list').append(issueItem);
     });
 });
 
-requestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=2');
+listRequestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=2');
