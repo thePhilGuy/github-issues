@@ -5,9 +5,9 @@ function loadIssueList(url) {
     listRequestStream.onNext(issuesUrl);
 }
 
-function bindClickableRequest(id, sourceUrl, stream) {
+function bindClickableRequest(selector, sourceUrl, stream) {
     Rx.Observable.create(function(observer) {
-        $(id).on('click', function() {
+        $(selector).on('click', function() {
             observer.onNext(sourceUrl);
         });
     }).subscribe(function(url) {
@@ -52,7 +52,9 @@ function makePageMenu(headers) {
         next = '<a class="item" id="next_page">' + nextIdx + '</a>';
         var lastUrl = tokens[3].substring(1, tokens[3].length - 2);
         var lastIdx = lastUrl.split("=")[1];
-        last = '<a class="item" id="last_page">' + lastIdx + '</a>';
+        if (nextIdx != lastIdx) {
+            last = '<a class="item" id="last_page">' + lastIdx + '</a>';
+        }
         var index = Number(nextIdx) - 1;
         current = '<div class="active item">' + index + '</div>';
     } else if (tokens[2] === 'rel="first",') {
@@ -102,6 +104,18 @@ function makePageMenu(headers) {
 
 // ============== Github API Communication ============================================
 var listRequestStream = new Rx.Subject();
+var detailRequestStream = new Rx.Subject();
+
+// Map requests url on detailRequestStream to JSON ajax request
+var detailStream = detailRequestStream.flatMap(function(requestUrl) {
+    console.log("Request: " + requestUrl);
+    return Rx.Observable.create(function (observer) {
+        jQuery.getJSON(requestUrl)
+        .done(function(response, status, jqXHR) { observer.onNext(jqXHR); })
+        .fail(function(jqXHR, status, error) { observer.onError(error); })
+        .always(function() { observer.onCompleted(); });
+    });
+});
 
 // Map requests url on listRequestStream to JSON ajax request
 var issueListStream = listRequestStream.flatMap(function(requestUrl) {
@@ -115,13 +129,13 @@ var issueListStream = listRequestStream.flatMap(function(requestUrl) {
 });
 
 // Handle the search bar communication with github repository search
-$('#search_bar').search({
+$('.search.ui').search({
     apiSettings: {
         url: '//api.github.com/search/repositories?q={query}',
         onResponse: function(githubResponse) {
             var response = {results : []};
             // translate GitHub API response to call a function instead of link to repository
-            githubResponse.items.forEach(function(index, item) {
+            githubResponse.items.forEach(function(item) {
                 var js_url = "javascript:void loadIssueList('" + item.html_url + "')";
                 response.results.push({
                     title       : item.name,
@@ -140,8 +154,26 @@ $('#search_bar').search({
     }
 });
 
+detailStream.subscribe(function(response) {
+    $('#issues_list').empty().hide();
+    $('#issues_pages').empty();
+    $('#issue_detail').show();
+
+    var issue = response.responseJSON;
+
+    var issueSection = $('#issue_detail');
+    var issueTitle = $('<h2>', {
+        'class' : 'ui center aligned header',
+        text    : issue.title
+    });
+    var issueDescription = $('<p>', {text : issue.body});
+
+    issueSection.append([issueTitle, issueDescription]);
+});
+
 // Handle JSON responses from listRequestStream
 issueListStream.subscribe(function(response) {
+    $('#issue_detail').hide();
     $('#issues_list').empty();
     $('#issues_pages').empty();
     var headers = response.getAllResponseHeaders();
@@ -156,6 +188,7 @@ issueListStream.subscribe(function(response) {
         });
         var issueTitle = $('<a>', {
             'class' : 'header',
+            'id' : issue.number,
             text : issue.title
         });
 
@@ -183,6 +216,7 @@ issueListStream.subscribe(function(response) {
         contentDiv.append([issueDescription, issueAuthor]);
         issueItem.append(contentDiv);
         $('#issues_list').append(issueItem);
+        bindClickableRequest('#' + issue.number, issue.url, detailRequestStream);
     });
 });
 
