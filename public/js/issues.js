@@ -177,7 +177,8 @@ $('.search.ui').search({
             title   : 'title',
             url     : 'url',
         },
-        minCharacters : 3
+        minCharacters : 3,
+        searchDelay   : 500
     }
 });
 
