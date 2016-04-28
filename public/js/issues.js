@@ -345,4 +345,4 @@ issueListStream.subscribe(function(response) {
     });
 });
 
-listRequestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=2');
+// listRequestStream.onNext('https://api.github.com/repos/npm/npm/issues?page=2');
