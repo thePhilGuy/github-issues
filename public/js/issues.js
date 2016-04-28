@@ -1,10 +1,12 @@
 // ============== Helper Functions =============================================
+// parse Mardown into HTML
 function parseMarkdown(text) {
     var converter = new showdown.Converter(),
         html      = converter.makeHtml(text);
     return html;
 }
 
+// parse usernames into Markdown links to github
 function parseUsernames(text) {
     var words = text.split(' ');
     for (var i = 0; i < words.length; i++) {
@@ -15,12 +17,14 @@ function parseUsernames(text) {
     return words.join(' ');
 }
 
+// Load issue list at page 1
 function loadIssueList(url) {
     var repoPath = url.substring('https://github.com/'.length),
         issuesUrl = 'https://api.github.com/repos/'+ repoPath + '/issues?page=1';
     listRequestStream.onNext(issuesUrl);
 }
 
+// map url on requestStream to JSON responses
 function mapToJSON(requestStream) {
     return requestStream.flatMap(function(requestUrl) {
         console.log("Request: " + requestUrl);
@@ -33,6 +37,7 @@ function mapToJSON(requestStream) {
     });
 }
 
+// Publish sourceUrl to request stream when selector is clicked
 function bindClickableRequest(selector, sourceUrl, stream) {
     Rx.Observable.create(function(observer) {
         $(selector).on('click', function() {
@@ -43,6 +48,7 @@ function bindClickableRequest(selector, sourceUrl, stream) {
     });
 }
 
+// Style labels with their custom colors
 function styleLabel(label) {
     return $('<div>', {
              'class' : 'ui basic label',
@@ -52,6 +58,7 @@ function styleLabel(label) {
     });
 }
 
+// Shorten text to 140 characters or next full word
 function shorten(text, limit) {
     var words = text.split(' '),
         short = ' ';
@@ -63,9 +70,8 @@ function shorten(text, limit) {
     }
     return short;
 }
-// ====================================================================================
 
-
+// Make pagination menu from issue list response headers
 function makePageMenu(headers) {
     var headerLines = headers.split("\n");
     if (headerLines[6].substring(0, 4) === "Link") {
@@ -128,6 +134,7 @@ function makePageMenu(headers) {
         }
     }
 }
+// ====================================================================================
 
 // ============== Github API Communication ============================================
 var listRequestStream = new Rx.Subject();
