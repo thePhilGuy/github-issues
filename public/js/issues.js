@@ -24,6 +24,11 @@ function loadIssueList(url) {
     listRequestStream.onNext(issuesUrl);
 }
 
+// Return to issue list
+function returnToIssueList(url) {
+    listRequestStream.onNext(url + '/issues');
+}
+
 // map url on requestStream to JSON responses
 function mapToJSON(requestStream) {
     return requestStream.flatMap(function(requestUrl) {
@@ -178,27 +183,35 @@ $('.search.ui').search({
 
 // Render issue in detail
 detailStream.subscribe(function(response) {
+    // Clear previous content on the page
     $('#issues_list').empty().hide();
     $('#issues_pages').empty();
     $('#issue_detail').show();
 
     var issue = response.responseJSON;
+    // document.title =
 
     var issueSection = $('#issue_detail');
     var issueTitle = $('<h2>', {
         'class' : 'ui center aligned header',
         text    : issue.title
     });
-    var issueDescription = $('<div>', {
-        html : parseMarkdown(issue.body)
+    var issueAuthor = $('<h4>', {
+        'class' : 'ui header',
+    }).append($('<img>', {
+        'class' : 'ui circular image',
+        src     : issue.user.avatar_url
+    })).append(' ' + issue.user.login);
+    var issueDescription = $('<div>', { html : parseMarkdown(issue.body) });
+    var listLink = $('<a>', {
+        href: 'javascript:void returnToIssueList(\"' + issue.repository_url + '")',
+        text: '<< Back to issues list'
     });
+    issueSection.append([issueTitle, issueAuthor, issueDescription, $('<br/>'), listLink]);
 
-    issueSection.append([issueTitle, issueDescription]);
-
-    var statusRail = $('<div>', {
-        'class' : 'ui right rail'
-    });
+    var rightRail = $('<div>', { 'class' : 'ui right rail' });
     var issueStatus = $('<p>', {text : 'Status: '});
+    // Make label according to status
     if (issue.state === 'open') {
         issueStatus.append($('<div>', {
             'class' : 'ui green label',
@@ -215,6 +228,8 @@ detailStream.subscribe(function(response) {
             text    : 'all'
         }));
     }
+
+    // Add labels to right rail
     var railSection = $('<div>', {
         'class' : 'ui segment'
     }).append(issueStatus);
@@ -226,9 +241,10 @@ detailStream.subscribe(function(response) {
         });
         railSection.append(metaDiv);
     }
-    statusRail.append(railSection);
-    issueSection.append(statusRail);
+    rightRail.append(railSection);
+    issueSection.append(rightRail);
 
+    // Load comments
     if (issue.comments > 0 ) {
         commentRequestStream.onNext(issue.comments_url);
     }
